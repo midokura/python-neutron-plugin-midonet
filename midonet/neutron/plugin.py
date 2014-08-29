@@ -52,7 +52,6 @@ from neutron.extensions import securitygroup as ext_sg
 from neutron.openstack.common import excutils
 from neutron.openstack.common import importutils
 from neutron.openstack.common import log as logging
-from neutron.openstack.common import rpc
 from neutron.plugins.common import constants
 from neutron.plugins.midonet.common import config  # noqa
 
@@ -73,19 +72,9 @@ class MidonetApiException(n_exc.NeutronException):
         message = _("MidoNet API error: %(msg)s")
 
 
-class MidoRpcCallbacks(dhcp_rpc_base.DhcpRpcCallbackMixin):
+class MidoRpcCallbacks(n_rpc.RpcCallback,
+                       dhcp_rpc_base.DhcpRpcCallbackMixin):
     RPC_API_VERSION = '1.1'
-
-    def create_rpc_dispatcher(self):
-        """Get the rpc dispatcher for this manager.
-
-        This a basic implementation that will call the plugin like get_ports
-        and handle basic events
-        If a manager would like to set an rpc API version, or support more than
-        one class as the target of rpc messages, override this method.
-        """
-        return n_rpc.PluginRpcDispatcher([self,
-                                          agents_db.AgentExtRpcCallback()])
 
 
 class MidonetPluginException(n_exc.NeutronException):
@@ -137,13 +126,13 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
     def setup_rpc(self):
         # RPC support
         self.topic = topics.PLUGIN
-        self.conn = rpc.create_connection(new=True)
-        self.callbacks = MidoRpcCallbacks()
-        self.dispatcher = self.callbacks.create_rpc_dispatcher()
-        self.conn.create_consumer(self.topic, self.dispatcher,
+        self.conn = n_rpc.create_connection(new=True)
+        self.endpoints = [MidoRpcCallbacks(),
+                          agents_db.AgentExtRpcCallback()]
+        self.conn.create_consumer(self.topic, self.endpoints,
                                   fanout=False)
         # Consume from all consumers in a thread
-        self.conn.consume_in_thread()
+        self.conn.consume_in_threads()
 
     def repair_quotas_table(self):
         query = ("CREATE TABLE `quotas` ( `id` varchar(36) NOT NULL, "
