@@ -15,16 +15,38 @@
 #    under the License.
 
 import webob
+from webob import exc as w_exc
+
+from midonetclient import exc
 
 from neutron.api import extensions
 from neutron.api.v2 import base
 from neutron.api.v2 import resource
+from neutron.common import exceptions as n_exc
 from neutron import manager
 from neutron.openstack.common import log as logging
 from neutron import wsgi
 
 LOG = logging.getLogger(__name__)
 PLURAL_NAME_MAP = {}
+
+
+def handle_api_error(fn):
+    """Wrapper for methods that throws custom exceptions."""
+    def wrapped(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except (w_exc.HTTPException, exc.MidoApiConnectionError) as ex:
+            raise MidonetApiException(msg=ex)
+    return wrapped
+
+
+class MidonetApiException(n_exc.NeutronException):
+        message = _("MidoNet API error: %(msg)s")
+
+
+class MidonetPluginException(n_exc.NeutronException):
+    message = _("%(msg)s")
 
 
 def midonet_extension(cls):
@@ -119,5 +141,3 @@ def midonet_extension(cls):
             setattr(cls, method.__name__, classmethod(method))
 
     return cls
-
-
