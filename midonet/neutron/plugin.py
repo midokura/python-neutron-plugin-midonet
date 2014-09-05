@@ -31,6 +31,8 @@ from midonet.neutron.common import util
 from midonet.neutron import extensions
 from sqlalchemy import exc as sa_exc
 
+from midonet.neutron import extensions
+from midonet.neutron.common import util
 from neutron.api import extensions as neutron_extensions
 from neutron.api.rpc.handlers import dhcp_rpc
 from neutron.common import exceptions as n_exc
@@ -77,7 +79,8 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                       agentschedulers_db.DhcpAgentSchedulerDbMixin,
                       securitygroups_db.SecurityGroupDbMixin,
                       rsi_db.RoutedServiceInsertionDbMixin,
-                      loadbalancer_db.LoadBalancerPluginDb):
+                      loadbalancer_db.LoadBalancerPluginDb,
+                      TunnelzoneHandlerMixin):
 
     supported_extension_aliases = ['agent',
                                    'binding',
@@ -87,7 +90,8 @@ class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                                    'quotas',
                                    'security-group',
                                    'routed-service-insertion',
-                                   'lbaas']
+                                   'lbaas',
+                                   'tunnelzone']
     __native_bulk_support = True
 
     def __init__(self):
