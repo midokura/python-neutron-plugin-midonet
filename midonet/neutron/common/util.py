@@ -141,3 +141,4 @@ def midonet_extension(cls):
             setattr(cls, method.__name__, classmethod(method))
 
     return cls
+
