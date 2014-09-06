@@ -60,6 +60,16 @@ from neutron.plugins.midonet.common import config  # noqa
 LOG = logging.getLogger(__name__)
 
 
+@util.generate_methods(['list', 'show', 'create', 'update', 'delete'])
+class TunnelzoneHandlerMixin(object):
+    """The mixin of the request handler for the tunnel zones."""
+
+
+@util.generate_methods(['list', 'show', 'create', 'update', 'delete'])
+class TunnelzonehostHandlerMixin(object):
+    """The mixin of the request handler for the tunnel zone hosts."""
+
+
 class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                       portbindings_db.PortBindingMixin,
                       external_net_db.External_net_db_mixin,
