@@ -33,6 +33,7 @@ from oslo.config import cfg
 from sqlalchemy import exc as sa_exc
 
 from neutron.api.rpc.handlers import dhcp_rpc
+from neutron.api.v2 import base
 from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
@@ -75,6 +76,60 @@ class MidonetApiException(n_exc.NeutronException):
 
 class MidonetPluginException(n_exc.NeutronException):
     message = _("%(msg)s")
+
+
+def generate_methods(methods):
+    """Decorator for classes that represents which HTTP methods are required by
+    the classes.
+    """
+    ALLOWED_METHODS = (base.Controller.LIST,
+                       base.Controller.SHOW,
+                       base.Controller.CREATE,
+                       base.Controller.UPDATE,
+                       base.Controller.DELETE)
+
+    @handle_api_error
+    def create_resource(self, context, id, resource):
+        pass
+
+    @handle_api_error
+    def update_resource(self, context, id, resource):
+        pass
+
+    @handle_api_error
+    def get_resource(self, context, id, fields):
+        pass
+
+    @handle_api_error
+    def get_resources(self, context, filters, fields):
+        pass
+
+    @handle_api_error
+    def delete_resource(self, context, id):
+        pass
+
+    AVAILABLE_METHODS = {base.Controller.LIST: get_resources,
+                         base.Controller.SHOW: get_resource,
+                         base.Controller.CREATE: create_resource,
+                         base.Controller.UPDATE: update_resource,
+                         base.Controller.DELETE: delete_resource}
+
+    required_methods = [method for method in methods
+                        if method in ALLOWED_METHODS]
+    def wrapper(cls):
+        # Use the first capitalzed word as an alias.
+        [capitalized_resource] = re.findall('^[A-Z][a-z0-9]*', cls.__name__)
+        alias = capitalized_resource.lower()
+        setattr(cls, 'ALIAS', alias)
+        for method in required_methods:
+            method_name = method + '_' + alias
+            try:
+                getattr(cls, method_name)
+            except AttributeError as e:
+                setattr(cls, method_name, AVAILABLE_METHODS[method])
+        return cls
+
+    return wrapper
 
 
 class MidonetPluginV2(db_base_plugin_v2.NeutronDbPluginV2,
